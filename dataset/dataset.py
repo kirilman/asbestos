@@ -16,7 +16,7 @@ class AsbestosDataSet:
             mask_suffix  = Path(self.mask_names[0]).suffix
             intersection = list( set(map(f_split, self.image_names)).intersection(list(map(f_split,self.mask_names))))   
             self.image_names = [s + image_suffix for s in intersection]
-            self.image_paths = [s + mask_suffix for s in intersection]
+            self.mask_names = [s + mask_suffix for s in intersection]
         self.number_images = len(self.image_names)
         self.image_names.sort(); self.mask_names.sort()
         self.image_paths = [Path(image_dir, name) for name in self.image_names]
