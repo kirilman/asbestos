@@ -34,11 +34,12 @@ class AsbestosDataSet:
 
     def __getitem__(self, index):
         try:
-            img = np.array(Image.open(self.image_paths[index]))
-            mask = np.array(Image.open(self.mask_paths[index]).convert('L'))    
+            img = np.array(Image.open(self.image_paths[index]), dtype = np.float32)/255
+            mask = np.array(Image.open(self.mask_paths[index]).convert('L')) // 255
+            mask = np.logical_not(mask).astype(np.long)
             name = self.image_names[index]
             if self.transform:
-                transformed = self.transform(image=np.array(img), mask=np.array(mask))
+                transformed = self.transform(image=img, mask=mask)
                 img = transformed['image']
                 mask= transformed['mask']
             return {'image': img, 'mask': mask, 'path': name}
