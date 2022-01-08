@@ -3,6 +3,11 @@ from PIL import Image
 import os 
 from pathlib import Path
 
+def convert(f):
+    image = f()
+    if (image['image'].shape)>3:
+        return image.convert('')
+
 
 class AsbestosDataSet:
     def __init__(self, image_dir, mask_dir, transform = None) -> None:
@@ -34,7 +39,7 @@ class AsbestosDataSet:
 
     def __getitem__(self, index):
         try:
-            img = np.array(Image.open(self.image_paths[index]), dtype = np.float32)/255
+            img = np.array(Image.open(self.image_paths[index]).convert('L'), dtype = np.float32)/255
             mask = np.array(Image.open(self.mask_paths[index]).convert('L')) // 255
             mask = np.logical_not(mask).astype(np.long)
             name = self.image_names[index]
