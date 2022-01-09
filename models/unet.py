@@ -108,7 +108,7 @@ class unet_2D(nn.Module):
             print('up3',up3.shape)
             print('up2',up2.shape)
             print('up1',up1.shape)
-        return final
+        return F.sigmoid(final)
 
     @staticmethod
     def apply_argmax_softmax(pred):
