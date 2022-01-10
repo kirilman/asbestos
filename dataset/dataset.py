@@ -58,3 +58,6 @@ class AsbestosDataSet:
             return res
         else:
             raise StopIteration
+            
+    def union(self, other):
+        return NotImplementedError
