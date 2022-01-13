@@ -2,11 +2,7 @@ import numpy as np
 from PIL import Image
 import os 
 from pathlib import Path
-
-def convert(f):
-    image = f()
-    if (image['image'].shape)>3:
-        return image.convert('')
+from typing import List, Dict
 
 
 class AsbestosDataSet:
@@ -59,5 +55,11 @@ class AsbestosDataSet:
         else:
             raise StopIteration
             
-    def union(self, other):
-        return NotImplementedError
+    def union(self, other: "AsbestosDataSet")->"AsbestosDataSet":
+        new_dataset = AsbestosDataSet('.','.')
+        new_dataset.image_paths = list(set(self.image_paths+other.image_paths))
+        new_dataset.mask_paths = list(set(self.mask_paths+other.mask_paths))
+        new_dataset.image_names = list(set(self.image_names+other.image_names))
+        new_dataset.number_images = len(new_dataset.image_names)
+        return new_dataset
+
