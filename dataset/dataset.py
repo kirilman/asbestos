@@ -11,7 +11,7 @@ class AsbestosDataSet:
         self.mask_names = os.listdir(mask_dir)
         self.transform = transform
         if len(self.image_names) != len(self.mask_names):
-            print('Number of images and masks are different')
+            print("Inside {} number of images and masks are different".format(image_dir))
             f_split = lambda x: x.split('.')[0]
             image_suffix = Path(self.image_names[0]).suffix
             mask_suffix  = Path(self.mask_names[0]).suffix
@@ -24,7 +24,7 @@ class AsbestosDataSet:
         self.mask_paths = [Path(mask_dir, mask) for mask in self.mask_names]
         self.n = 0
         for image, mask in zip(self.image_paths, self.mask_paths):
-            assert image.name.split('.')[0] == mask.name.split('.')[0], 'Names do not match, {} and {}'.format(image, mask)
+            assert image.name.split('.')[0] == mask.name.split('.')[0], "Names do not match, {} and {}".format(image, mask)
 
     def __len__(self):
         return self.number_images

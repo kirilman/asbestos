@@ -108,7 +108,7 @@ class unet_2D(nn.Module):
             print('up3',up3.shape)
             print('up2',up2.shape)
             print('up1',up1.shape)
-        return F.sigmoid(final)
+        return torch.sigmoid(final)
 
     @staticmethod
     def apply_argmax_softmax(pred):
@@ -190,7 +190,7 @@ class outconv(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        return F.sigmoid(x)  #sigmoid out
+        return torch.sigmoid(x)  #sigmoid out
 
 class UNet(nn.Module):
     def __init__(self, n_channels, n_classes, is_debug = False):
