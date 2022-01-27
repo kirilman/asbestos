@@ -1,27 +1,39 @@
 from dataclasses import dataclass
 import numpy as np
 from PIL import Image
+import dataset
 from models.unet import unet_2D, UNet
 import torch
 from catalyst import dl, metrics, utils
 from catalyst.loggers.wandb import WandbLogger
 import albumentations as A
 from dataset import AsbestosDataSet
-from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data import DataLoader, ConcatDataset, Subset
 from torch import nn
 import datetime 
-
 from models.utils import DiceLoss
+from sklearn.model_selection import train_test_split
+import time 
+
+def train_val_dataset(dataset, val_split=0.25):
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split)
+    print(train_idx)
+    datasets = {}
+    datasets['train'] = Subset(dataset, train_idx)
+    datasets['valid'] = Subset(dataset, val_idx)
+    return datasets
+
 def run(arguments):
     image_size = 512
     image_dir = '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/images/asbestos/stones/lab_common_camera/'
     mask_dir  = '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/SegmentationAsbest'
 
     transform = A.Compose([A.Resize(1152, 1728), A.RandomCrop(1024,1024), A.Resize(image_size,image_size) ,A.RandomRotate90()])
-    s1_dataset        = AsbestosDataSet(image_dir, mask_dir,transform)
-    s1_validation_set = AsbestosDataSet('../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/images',
-                            '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/masks',
-                            A.Compose([A.Resize(1152, 1728), A.RandomCrop(1024,1024), A.Resize(image_size,image_size)]))
+    s1_dataset        = AsbestosDataSet(image_dir, mask_dir,transform, True)
+    print(len(s1_dataset))
+    # s1_validation_set = AsbestosDataSet('../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/images',
+    #                         '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/masks',
+    #                         A.Compose([A.Resize(1152, 1728), A.RandomCrop(1024,1024), A.Resize(image_size,image_size)]))
 
     image_dir = '../task_asbestos_stone_161220-2021_01_13_12_39_03-segmentation mask 1.1 (1)/JPEGImages/asbestos/stones/161220'
     mask_dir  = '../task_asbestos_stone_161220-2021_01_13_12_39_03-segmentation mask 1.1 (1)/SegmentationAsbest'
@@ -29,11 +41,14 @@ def run(arguments):
     transform = A.Compose([A.RandomCrop(width=512*3, height=512*3),
                         A.Resize(image_size,image_size), A.RandomRotate90()])
 
-    s2_dataset = AsbestosDataSet(image_dir, mask_dir, transform)
-    
-    validation_data_loader = DataLoader(s1_validation_set, num_workers=1, batch_size=2)
-    train_data_loader = DataLoader(ConcatDataset((s1_dataset, s2_dataset)), batch_size=2)
-    loaders = {"train": train_data_loader, "valid": validation_data_loader}    
+    s2_dataset = AsbestosDataSet(image_dir, mask_dir, transform, True)
+    print(len(s2_dataset))
+    # validation_data_loader = DataLoader(s1_validation_set, num_workers=1, batch_size=2)
+    #train_data_loader = DataLoader(ConcatDataset((s1_dataset, s2_dataset)), batch_size=2)
+
+    datasets = train_val_dataset(ConcatDataset((s1_dataset, s2_dataset)))
+
+    loaders = {"train": DataLoader(datasets['train'], batch_size=2), "valid": DataLoader(datasets['valid'], batch_size=2)}    
     print("Train size: {}; Validation size: {}".format(len(loaders["train"]), len(loaders["valid"])))
     #--------
     class CustomRunner(dl.Runner):
@@ -45,8 +60,10 @@ def run(arguments):
                             for key in ["loss", "iou"]}
             
         def handle_batch(self, batch):
+            
             image, mask, name = batch.values()
             #----------
+            time.sleep(0.14)
             image = image.unsqueeze(1)
             mask  = mask.unsqueeze(1)
             predict = self.model(image)#batch size
@@ -82,7 +99,7 @@ def run(arguments):
         criterion = criterion,
         optimizer=optimizer,
         loaders=loaders,
-        num_epochs=500, 
+        num_epochs=300, 
         logdir = 'logs/unet_lab_log_{}'.format(str(datetime.datetime.now())),
 
         # callbacks=[WandbLogger(project="catalyst",name= 'UNet_500')],

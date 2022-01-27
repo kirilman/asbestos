@@ -49,10 +49,10 @@ class AsbestosDataSet:
         try:
             if self.preload_data:
                 img = self.raw_images[index]
-                mask = self.raw_images[index]
+                mask = self.raw_masks[index]
             else:    
                 img  = load_img(self.image_paths[index], np.float32, 'L')/255
-                mask = load_img(self.image_paths[index], np.float32, 'L')//255
+                mask = load_img(self.mask_paths[index], np.float32, 'L')//255
             mask = np.logical_not(mask).astype(np.long)
             name = self.image_names[index]
             if self.transform:
