@@ -46,8 +46,9 @@ def run(arguments):
     # validation_data_loader = DataLoader(s1_validation_set, num_workers=1, batch_size=2)
     #train_data_loader = DataLoader(ConcatDataset((s1_dataset, s2_dataset)), batch_size=2)
 
-    datasets = train_val_dataset(ConcatDataset((s1_dataset, s2_dataset)))
-
+    #datasets = train_val_dataset(ConcatDataset((s1_dataset, s2_dataset)))
+    datasets = train_val_dataset(s1_dataset)
+    a = 1
     loaders = {"train": DataLoader(datasets['train'], batch_size=2), "valid": DataLoader(datasets['valid'], batch_size=2)}    
     print("Train size: {}; Validation size: {}".format(len(loaders["train"]), len(loaders["valid"])))
     #--------
