@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
+from models.layer import Attention_block
+
 class unetConv2(nn.Module):
     def __init__(self, in_size, out_size, is_batchnorm, n=2, ks=3, stride=1, padding=1):
         super(unetConv2, self).__init__()
@@ -182,6 +184,19 @@ class up(nn.Module):
         x = self.conv(x)
         return x
 
+class up_attention(nn.Module):
+    def __init__(self, upper_ch, bottom_ch, int_attention_ch, out_ch):
+        super(up_attention, self).__init__()
+        self.up  = nn.Upsample(scale_factor=2, mode ='bilinear', align_corners=True)
+        self.att = Attention_block(bottom_ch, upper_ch, int_attention_ch)
+        self.conv = double_conv(upper_ch + bottom_ch, out_ch)
+
+    def forward(self, g, x):
+        g_up = self.up(g)
+        x_a = self.att(g_up, x)
+        x = torch.cat((x_a, g_up), dim = 1)
+        return self.conv(x)
+
 
 class outconv(nn.Module):
     def __init__(self, in_ch, out_ch):
@@ -219,10 +234,53 @@ class UNet(nn.Module):
         u4 = self.up4(u3, x1)
         x = self.outc(u4)
         if self.is_debug:
-            print('c', x5.shape)
+            print('x1', x1.shape)
+            print('x2', x2.shape)
+            print('x3', x3.shape)
+            print('x4', x4.shape)
+            print('x5', x5.shape)
             print('u1', u1.shape)
             print('u2', u2.shape)
             print('u3', u3.shape)
             print('u4', u4.shape)
-            print('o', x.shape)
+            print('x', x.shape)
+        return x
+
+class Attention_Unet(nn.Module):
+    def __init__(self, n_channels, n_classes, is_debug = False):
+        super(Attention_Unet, self).__init__()
+        self.is_debug = is_debug
+        self.inc = inconv(n_channels, 64)
+        self.down1 = down(64, 128)
+        self.down2 = down(128, 256)
+        self.down3 = down(256, 512)
+        self.down4 = down(512, 512)
+        self.up1   = up_attention(512, 512, 256, 256)
+        self.up2   = up_attention(256, 256, 128, 128)
+        self.up3   = up_attention(128, 128,  64,  64)
+        self.up4   = up_attention( 64,  64,  32,  64)
+        self.outc  = outconv(64, n_classes)
+
+    def forward(self, x):
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        u1 = self.up1(x5,x4)
+        u2 = self.up2(u1,x3)
+        u3 = self.up3(u2,x2)
+        u4 = self.up4(u3,x1)
+        x  = self.outc(u4)
+        if self.is_debug:
+            print('x1', x1.shape)
+            print('x2', x2.shape)
+            print('x3', x3.shape)
+            print('x4', x4.shape)
+            print('x5', x5.shape)
+            print('u1', u1.shape)
+            print('u2', u2.shape)
+            print('u3', u3.shape)
+            print('u4', u4.shape)
+            print('x', x.shape)
         return x

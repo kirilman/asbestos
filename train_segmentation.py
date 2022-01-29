@@ -93,7 +93,7 @@ def run(arguments):
 
     criterion = DiceLoss()
     # criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(),)
     runner = CustomRunner()
     runner.train(
         model=model,
