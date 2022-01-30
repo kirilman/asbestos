@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 
-from models.layer import Attention_block
+from .layer import Attention_block
 
 class unetConv2(nn.Module):
     def __init__(self, in_size, out_size, is_batchnorm, n=2, ks=3, stride=1, padding=1):
@@ -207,9 +207,9 @@ class outconv(nn.Module):
         x = self.conv(x)
         return torch.sigmoid(x)  #sigmoid out
 
-class UNet(nn.Module):
+class Unet(nn.Module):
     def __init__(self, n_channels, n_classes, is_debug = False):
-        super(UNet, self).__init__()
+        super(Unet, self).__init__()
         self.is_debug = is_debug
         self.inc = inconv(n_channels, 64)
         self.down1 = down(64, 128)

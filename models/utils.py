@@ -1,5 +1,14 @@
 import imp
 from torch import nn
+from .unet import Unet, Attention_Unet
+
+def get_network(name):
+    if name == 'Unet':
+        return  Unet
+    if name == 'Attention_Unet':
+        return Attention_Unet
+    else:
+        raise "Model not found"
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
