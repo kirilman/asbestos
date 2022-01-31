@@ -1,0 +1,9 @@
+image_dir: ["./data/train","./data/"]
+mask_dir: ["."]
+valid_size: 0.25
+batch_size: 2
+image_size: 512
+model: "Attention_Unet"
+preload_data: False
+num_epochs: 400
+

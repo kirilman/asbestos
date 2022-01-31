@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image
 import dataset
-from models.unet import unet_2D, UNet
+from models.unet import unet_2D, Unet, Attention_Unet
 import torch
 from catalyst import dl, metrics, utils
 from catalyst.loggers.wandb import WandbLogger
@@ -14,6 +14,8 @@ import datetime
 from models.utils import DiceLoss
 from sklearn.model_selection import train_test_split
 import time 
+import yaml
+from models.utils import get_network
 
 def train_val_dataset(dataset, val_split=0.25):
     train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split)
@@ -23,13 +25,13 @@ def train_val_dataset(dataset, val_split=0.25):
     datasets['valid'] = Subset(dataset, val_idx)
     return datasets
 
-def run(arguments):
-    image_size = 512
+def run(config):
+    image_size = config['image_size']
     image_dir = '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/images/asbestos/stones/lab_common_camera/'
     mask_dir  = '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/SegmentationAsbest'
-
+    preload_data = config['preload_data']	
     transform = A.Compose([A.Resize(1152, 1728), A.RandomCrop(1024,1024), A.Resize(image_size,image_size) ,A.RandomRotate90()])
-    s1_dataset        = AsbestosDataSet(image_dir, mask_dir,transform, True)
+    s1_dataset        = AsbestosDataSet(image_dir, mask_dir,transform, preload_data)
     print(len(s1_dataset))
     # s1_validation_set = AsbestosDataSet('../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/images',
     #                         '../task_asbestos_stone_lab_common_camera-2021_12_10_13_12_14-mots png 1.0/validation/masks',
@@ -41,17 +43,15 @@ def run(arguments):
     transform = A.Compose([A.RandomCrop(width=512*3, height=512*3),
                         A.Resize(image_size,image_size), A.RandomRotate90()])
 
-    s2_dataset = AsbestosDataSet(image_dir, mask_dir, transform, True)
+    s2_dataset = AsbestosDataSet(image_dir, mask_dir, transform, preload_data)
     print(len(s2_dataset))
     # validation_data_loader = DataLoader(s1_validation_set, num_workers=1, batch_size=2)
     #train_data_loader = DataLoader(ConcatDataset((s1_dataset, s2_dataset)), batch_size=2)
 
-    #datasets = train_val_dataset(ConcatDataset((s1_dataset, s2_dataset)))
-    datasets = train_val_dataset(s1_dataset)
-    a = 1
-    loaders = {"train": DataLoader(datasets['train'], batch_size=2), "valid": DataLoader(datasets['valid'], batch_size=2)}    
+    datasets = train_val_dataset(ConcatDataset([s2_dataset]))
+    loaders = {"train": DataLoader(datasets['train'], batch_size=2), "valid": DataLoader(datasets['valid'], batch_size=2)}  
+
     print("Train size: {}; Validation size: {}".format(len(loaders["train"]), len(loaders["valid"])))
-    #--------
     class CustomRunner(dl.Runner):
         def predict_batch(self, batch):
             return self.model(batch['image'].to(self.device))
@@ -64,7 +64,7 @@ def run(arguments):
             
             image, mask, name = batch.values()
             #----------
-            time.sleep(0.14)
+            time.sleep(0.12)
             image = image.unsqueeze(1)
             mask  = mask.unsqueeze(1)
             predict = self.model(image)#batch size
@@ -89,8 +89,7 @@ def run(arguments):
                 self.loader_metrics[key] = self.meters[key].compute()[0]
             super().on_loader_end(runner)  
 
-    model = UNet(n_channels=1, n_classes = 1 )
-
+    model = get_network(config['model'])(1,1)
     criterion = DiceLoss()
     # criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(),)
@@ -100,9 +99,8 @@ def run(arguments):
         criterion = criterion,
         optimizer=optimizer,
         loaders=loaders,
-        num_epochs=300, 
-        logdir = 'logs/unet_lab_log_{}'.format(str(datetime.datetime.now())),
-
+        num_epochs=config['num_epochs'], 
+        logdir = 'logs/{}_{}'.format(config['model'], str(datetime.datetime.now()).split('.')[0]),
         # callbacks=[WandbLogger(project="catalyst",name= 'UNet_500')],
         verbose=True)
 
@@ -143,5 +141,8 @@ class CustomRunner(dl.Runner):
         super().on_loader_end(runner)  
 
 if __name__ == '__main__':
-    run(None)
-    print('start')
+    with open('config/test.yml') as f:
+        config = yaml.safe_load(f)
+    run(config)
+    # print('start')
+
