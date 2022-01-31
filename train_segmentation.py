@@ -48,9 +48,9 @@ def run(config):
     # validation_data_loader = DataLoader(s1_validation_set, num_workers=1, batch_size=2)
     #train_data_loader = DataLoader(ConcatDataset((s1_dataset, s2_dataset)), batch_size=2)
 
-    datasets = train_val_dataset(ConcatDataset((s2_dataset)))
+    datasets = train_val_dataset(ConcatDataset([s2_dataset]))
     loaders = {"train": DataLoader(datasets['train'], batch_size=2), "valid": DataLoader(datasets['valid'], batch_size=2)}  
-      
+
     print("Train size: {}; Validation size: {}".format(len(loaders["train"]), len(loaders["valid"])))
     class CustomRunner(dl.Runner):
         def predict_batch(self, batch):
@@ -100,7 +100,7 @@ def run(config):
         optimizer=optimizer,
         loaders=loaders,
         num_epochs=config['num_epochs'], 
-        logdir = 'logs/{}_{}'.format(config['model'], str(datetime.datetime.now())),
+        logdir = 'logs/{}_{}'.format(config['model'], str(datetime.datetime.now()).split('.')[0]),
         # callbacks=[WandbLogger(project="catalyst",name= 'UNet_500')],
         verbose=True)
 
