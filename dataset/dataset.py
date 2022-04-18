@@ -4,6 +4,14 @@ import os
 from pathlib import Path
 from typing import List, Dict
 
+class Box():
+    def __init__(self,xc,yc,h,w) -> None:
+        self.xc = xc
+        self.yc = yc
+        self.dx = h/2
+        self.dy = w/2
+
+
 def load_img(filepath, dtype, convert_type = None)-> np.array:
     if convert_type is not None:
         img = Image.open(filepath).convert(convert_type)
