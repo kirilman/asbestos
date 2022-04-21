@@ -4,13 +4,16 @@ import os
 from pathlib import Path
 from typing import List, Dict
 
-class Box():
-    def __init__(self,xc,yc,h,w) -> None:
-        self.xc = xc
-        self.yc = yc
-        self.dx = h/2
-        self.dy = w/2
-
+class Bbox():
+    def __init__(self,x1,y1,x2,y2) -> None:
+        self.x1 = x1
+        self.x2 = x2
+        self.y1 = y1
+        self.y2 = y2
+        
+    @property
+    def diagonal(self):
+        return np.sqrt((self.x2 - self.x1)**2 + (self.y2 - self.y1)**2)
 
 def load_img(filepath, dtype, convert_type = None)-> np.array:
     if convert_type is not None:
