@@ -25,3 +25,5 @@ def get_files_from_dirs(dirs:List[str]) -> List[str]:
         for f in os.listdir(d):
             files.append(Path(d,f))
     return files
+
+

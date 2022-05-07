@@ -3,6 +3,7 @@ from PIL import Image
 import os 
 from pathlib import Path
 from typing import List, Dict
+import sqlalchemy as db
 
 class Bbox():
     def __init__(self,x1,y1,x2,y2) -> None:
@@ -15,12 +16,14 @@ class Bbox():
     def diagonal(self):
         return np.sqrt((self.x2 - self.x1)**2 + (self.y2 - self.y1)**2)
 
-def load_img(filepath, dtype, convert_type = None)-> np.array:
+
+def load_img(filepath, dtype = float, convert_type = None)-> np.array:
     if convert_type is not None:
         img = Image.open(filepath).convert(convert_type)
     else:
         img = Image.open(filepath)
     return np.array(img, dtype = dtype)
+
 
 class AsbestosDataSet:
     def __init__(self, image_dir, mask_dir, transform = None, preload_data = False) -> None:
@@ -46,8 +49,8 @@ class AsbestosDataSet:
             assert image.name.split('.')[0] == mask.name.split('.')[0], "Names do not match, {} and {}".format(image, mask)
             
         if self.preload_data:
-            self.raw_images = [load_img(p, np.float32, 'L')/255 for p in self.image_paths]
-            self.raw_masks  = [load_img(p, np.float32, 'L')//255 for p in self.mask_paths]
+            self.raw_images = [load_img(p, np.float32,"L")/255 for p in self.image_paths]
+            self.raw_masks  = [load_img(p, np.float32, "L")/255 for p in self.mask_paths]
 
     def __len__(self):
         return self.number_images
@@ -62,14 +65,19 @@ class AsbestosDataSet:
                 img = self.raw_images[index]
                 mask = self.raw_masks[index]
             else:    
-                img  = load_img(self.image_paths[index], np.float32, 'L')/255
-                mask = load_img(self.mask_paths[index], np.float32, 'L')//255
-            mask = np.logical_not(mask).astype(np.long)
+                img  = load_img(self.image_paths[index], np.float32, "L" )/255
+                mask = load_img(self.mask_paths[index], np.float32 ,"L")/255
+            #FIX
+#             mask = np.logical_not(mask).astype(np.long) 
             name = self.image_names[index]
             if self.transform:
-                transformed = self.transform(image=img, mask=mask)
-                img = transformed['image']
-                mask= transformed['mask']
+                if not isinstance(self.transform, list):
+                    operators = [self.transform]
+                else:
+                    operators = self.transform
+                for operator in operators:
+                    img = operator(image=img)['image']
+                    mask = operator(image=mask)['image']
             return {'image': img, 'mask': mask, 'path': name}
         except:
             raise 
