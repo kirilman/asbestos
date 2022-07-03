@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-def resize_images(inpt_dir: List, formats: List, out_dir: str, out_size: Tuple, kwargs: Dict):
+def resize_images(inpt_dir: List, formats: List, out_dir: str, out_imag_size: Tuple, kwargs: Dict):
     if "dtype" in kwargs: 
         dtype = kwargs["dtype"]
     else:
@@ -21,7 +21,7 @@ def resize_images(inpt_dir: List, formats: List, out_dir: str, out_size: Tuple, 
     out_dir = Path(out_dir)
     for p in paths:
         img = load_img(p, dtype)
-        img = cv2.resize(img, out_size)
+        img = cv2.resize(img, out_imag_size)
         cv2.imwrite(str(out_dir.joinpath(p.name)), img)
 
 def transform_images(inpt_dir: List, formats: List, out_dir: str, transform_compose, kwargs):
