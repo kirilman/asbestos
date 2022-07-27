@@ -88,6 +88,8 @@ class image_generator():
 
     def __next__(self):
         self.count+=1
+        if self.count > self.__len__():
+            raise StopIteration
         path = self.im_files[self.count]
         img = cv2.imread(path)  
         labels = np.loadtxt(self.labels_files[self.count])
