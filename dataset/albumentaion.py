@@ -102,12 +102,11 @@ class yolo_image_generator():
         return img, labels
     
 def generate_dataset(path_2_data,
-                 path_2_save,
-                 count_images,
-                 image_size,
-                 )
-        image_gen = yolo_image_generator(path_2_data, image_size, count_images)
-        for image, labels in image_gen:
-            #save image
-            #save labels
-            
+                     path_2_save,
+                     count_images,
+                     image_size)
+    image_gen = yolo_image_generator(path_2_data, image_size, count_images)
+    for image, labels in image_gen:
+        #save image
+        #save labels
+
