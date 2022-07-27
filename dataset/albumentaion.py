@@ -1,3 +1,4 @@
+import imp
 from typing import Tuple
 import numpy as np
 import os
@@ -6,6 +7,7 @@ import cv2
 import albumentations as A
 import random
 from dataset.dataset import load_img
+from pathlib import Path
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp'  # include image suffixes
 
@@ -53,16 +55,18 @@ class Albumentations:
     def __init__(self):
         self.transform = None
         T = [
-            A.Blur(p=0.01),
-            A.MedianBlur(p=0.01),
-            A.ToGray(p=0.01),
-            A.CLAHE(p=0.01),
-            A.RandomBrightnessContrast(p=0.0),
-            A.RandomGamma(p=0.0),
-            A.ImageCompression(quality_lower=75, p=0.0)]  # transforms
+            A.Blur(p=0.5),
+            A.MedianBlur(p=0.5),
+            A.ToGray(p=0.5),
+            A.CLAHE(p=0.5),
+            A.RandomBrightnessContrast(contrast_limit = 0.05, p=0.5),
+            A.RandomGamma(p=0.5),
+            # A.ImageCompression(quality_lower=0.9, p=0.1)
+            ]  # transforms
         self.transform = A.Compose(T, bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
 
     def __call__(self, im, labels, p=1.0):
+        print('alb:', labels)
         if self.transform and random.random() < p:
             new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
             im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
@@ -92,24 +96,29 @@ class yolo_image_generator():
         self.count+=1
         if self.count > self.max_count:
             raise StopIteration
-        if self.count > self.__len__()
+        if self.count > self.__len__():
             self.count = 0
         path = self.im_files[self.count]
-        img = cv2.imread(path)  
+        img = cv2.imread(path)
         labels = np.loadtxt(self.labels_files[self.count])
+        if labels.any() <= 0:
+            print("Negative yolo coordinate")
+            return None, None
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_AREA)
+        print(labels)
+        print(path)
         img, labels  = self.albumentations(img, labels)
         return img, labels
     
 def generate_dataset(path_2_data,
                      path_2_save,
                      count_images,
-                     image_size)
+                     image_size):
     path_2_save = Path(path_2_save) if isinstance(path_2_save, str) else path_2_save
     image_gen = yolo_image_generator(path_2_data, image_size, count_images)
     for i, image, labels in enumerate(image_gen):
         cv2.imwrite(image, path_2_save / "{}.jpg".format(i))
         np.savetxt(labels, path_2_save / "{}.txt".format(i))
-        #save image
-        #save labels
+
 
