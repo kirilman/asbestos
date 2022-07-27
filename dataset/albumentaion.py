@@ -90,9 +90,9 @@ class yolo_image_generator():
 
     def __next__(self):
         self.count+=1
-        if self.count > count_gen_images:
+        if self.count > self.max_count:
             raise StopIteration
-        if self.count > self.max_count
+        if self.count > self.__len__()
             self.count = 0
         path = self.im_files[self.count]
         img = cv2.imread(path)  
