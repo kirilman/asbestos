@@ -105,8 +105,11 @@ def generate_dataset(path_2_data,
                      path_2_save,
                      count_images,
                      image_size)
+    path_2_save = Path(path_2_save) if isinstance(path_2_save, str) else path_2_save
     image_gen = yolo_image_generator(path_2_data, image_size, count_images)
-    for image, labels in image_gen:
+    for i, image, labels in enumerate(image_gen):
+        cv2.imwrite(image, path_2_save / "{}.jpg".format(i))
+        np.savetxt(labels, path_2_save / "{}.txt".format(i))
         #save image
         #save labels
 
