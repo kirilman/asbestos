@@ -68,12 +68,14 @@ class Albumentations:
             im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
         return im, labels
 
-class image_generator():
+class yolo_image_generator():
     def __init__(self, 
                  path,
                  img_size: Tuple,
+                 max_count: int,
                  ):
         self.img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
+        self.max_count = max_count
         files = sorted(glob.glob(os.path.join(path, '*.*')))
         self.im_files = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS]
         self.labels_files = img2label_paths(self.im_files)
@@ -88,14 +90,15 @@ class image_generator():
 
     def __next__(self):
         self.count+=1
-        if self.count > self.__len__():
+        if self.count > count_gen_images:
             raise StopIteration
+        if self.count > self.max_count
+            self.count = 0
         path = self.im_files[self.count]
         img = cv2.imread(path)  
         labels = np.loadtxt(self.labels_files[self.count])
-        print(labels.shape)
         img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_AREA)
         img, labels  = self.albumentations(img, labels)
-
         return img, labels
+    
 
