@@ -1,8 +1,19 @@
+__all__ = (
+    "is_image",
+    "load_img"
+)
 import numpy as np
 from PIL import Image
 import os 
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Union
+PathLike = Union[Path, str]
+
+IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp' 
+
+def is_image(path:PathLike):
+    path = str(path)
+    return path.split('.')[-1].lower() in IMG_FORMATS
 
 class Bbox():
     def __init__(self,x1,y1,x2,y2) -> None:
@@ -89,3 +100,8 @@ class AsbestosDataSet:
         else:
             raise StopIteration
             
+
+class DatasetBBox:
+    def __init__(self) -> None:
+        pass
+    

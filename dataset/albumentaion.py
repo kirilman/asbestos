@@ -55,16 +55,18 @@ class Albumentations:
     # YOLOv5 Albumentations class (optional, only used if package is installed)
     def __init__(self):
         self.transform = None
-        T = [
-            A.MedianBlur(p=0.5),
-            A.ToGray(p=0.5),
-            A.CLAHE(p=0.5),
-            A.RandomBrightnessContrast(contrast_limit = 0.05, p=0.5),
-            A.RandomGamma(p=0.5),
-            A.VerticalFlip(p = 0.5),
-            A.Flip(p = 0.5)
-            # A.ImageCompression(quality_lower=0.9, p=0.1)
-            ]  # transforms
+        # T = [
+        #     A.MedianBlur(p=0.5),
+        #     A.ToGray(p=0.5),
+        #     A.CLAHE(p=0.5),
+        #     A.RandomBrightnessContrast(contrast_limit = 0.05, p=0.5),
+        #     A.RandomGamma(p=0.5),
+        #     A.VerticalFlip(p = 0.5),
+        #     A.Flip(p = 0.5)
+        #     # A.ImageCompression(quality_lower=0.9, p=0.1)
+        #     ]  # transforms
+        T = [ A.VerticalFlip(p = 0.5),
+              A.Flip(p = 0.5)]
         self.transform = A.Compose(T, bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
 
     def __call__(self, im, labels, p=1.0):
