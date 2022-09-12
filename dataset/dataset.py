@@ -1,12 +1,22 @@
 __all__ = (
     "is_image",
-    "load_img"
+    "load_img",
+    "ImageDirDataset",
+    "get_paths"
 )
+
+from abc import ABC
+import re
+from tkinter import image_names
 import numpy as np
 from PIL import Image
 import os 
 from pathlib import Path
 from typing import List, Dict, Union
+import glob
+from abc import ABC, abstractmethod
+import cv2
+
 PathLike = Union[Path, str]
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp' 
@@ -28,12 +38,43 @@ class Bbox():
 
 
 def load_img(filepath, dtype = float, convert_type = None)-> np.array:
-    if convert_type is not None:
-        img = Image.open(filepath).convert(convert_type)
-    else:
-        img = Image.open(filepath)
+    # if convert_type is not None:
+    #     img = Image.open(filepath).convert(convert_type)
+    # else:
+    #     img = Image.open(filepath)
+    img = cv2.imread(filepath)
     return np.array(img, dtype = dtype)
+            
+def load_txt(path:PathLike)->str:
+    with open(path, 'r') as f:
+        data = f.read()
+    return data
 
+def get_paths(path: PathLike)->List[PathLike]:
+    if isinstance(path, str): 
+        path = Path(path)
+    files = []
+    if path.is_dir():
+        files += glob.glob(str(path / '**' / '*.*'), recursive=True)
+    elif path.is_file():  # file
+        with open(path) as t:
+            t = t.read().strip().splitlines()
+            parent = str(path.parent) + os.sep
+            files += [x.replace('./', parent) if x.startswith('./') else x for x in t] 
+    else:
+        raise FileNotFoundError(f'{path} does not exist')         
+    return files   
+
+def get_subdirs(path: PathLike)->Dict[PathLike,int]:
+    
+    files = get_paths(path)
+    s_pos = len(str(path))
+    sub_dirs = set()
+    count_images_by_subdir = {}
+    for p in files:
+        e_pos = str(p).rfind('/')
+        sub_dirs.add(p[s_pos+1:e_pos])
+    return sub_dirs
 
 class AsbestosDataSet:
     def __init__(self, image_dir, mask_dir, transform = None, preload_data = False) -> None:
@@ -99,9 +140,22 @@ class AsbestosDataSet:
             return res
         else:
             raise StopIteration
-            
 
-class DatasetBBox:
-    def __init__(self) -> None:
-        pass
+class ImageDirDataset:
+    def __init__(self, path) -> None:
+        self.path = path
+        self.paths = get_paths(self.path)
+        self.image_files = [p for p in self.paths if Path(p).is_file() and p.split('.')[-1] in IMG_FORMATS]
+    def __getitem__(self, index):
+        return {"name":self.image_files[index],"image":load_img(self.image_files[index])}
     
+    def __len__(self):
+        return len(self.image_files)
+
+if __name__ == '__main__':
+    ds = ImageDirDataset('/home/kirilman/Project/dataset/detection_set2/')
+    print(ds.image_files)
+    for f in ds.image_files:
+        print(hash(f), f)
+    print(ds[1])
+   
