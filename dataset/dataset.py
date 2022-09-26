@@ -6,8 +6,10 @@ __all__ = (
 )
 
 from abc import ABC
+import enum
 import re
 from tkinter import image_names
+from turtle import pos
 import numpy as np
 from PIL import Image
 import os 
@@ -141,14 +143,23 @@ class AsbestosDataSet:
         else:
             raise StopIteration
 
-class ImageDirDataset:
+class ImageDirDataset(dict):
     def __init__(self, path) -> None:
         self.path = path
         self.paths = get_paths(self.path)
         self.image_files = [p for p in self.paths if Path(p).is_file() and p.split('.')[-1] in IMG_FORMATS]
+
     def __getitem__(self, index):
-        return {"name":self.image_files[index],"image":load_img(self.image_files[index])}
-    
+        if isinstance(index,int):
+            return {"name": self.image_files[index],"image":load_img(self.image_files[index])}
+        elif isinstance(index, str):
+            names = [Path(f).stem for f in self.image_files]
+            possible_index = []
+            for k, name in enumerate(names):
+                if name == index:
+                    possible_index.append(k)
+            return [{"name": self.image_files[i], "image": load_img(self.image_files[i])} for i in possible_index]
+
     def __len__(self):
         return len(self.image_files)
 
