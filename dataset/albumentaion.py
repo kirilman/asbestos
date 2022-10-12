@@ -6,7 +6,7 @@ import glob
 import cv2
 import albumentations as A
 import random
-from dataset.dataset import load_img
+from dataset.dataset import load_img, PathLike
 from pathlib import Path
 from tqdm import tqdm
 
@@ -126,10 +126,10 @@ class yolo_image_generator():
             bboxs[i][4] = np.abs(bboxs[i][4] - 0.5 / self.img_size[1])
         return bboxs
             
-def generate_dataset(path_2_data,
-                     path_2_save,
-                     count_images,
-                     image_size):
+def generate_dataset(path_2_data : PathLike,
+                     path_2_save : PathLike,
+                     count_images: int,
+                     image_size  : Tuple[int,int])->None:
     path_2_save = Path(path_2_save) if isinstance(path_2_save, str) else path_2_save
     image_gen = yolo_image_generator(path_2_data, image_size, count_images)
     for i, (image, labels) in tqdm(enumerate(iter(image_gen))):

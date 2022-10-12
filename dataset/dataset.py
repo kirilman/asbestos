@@ -7,6 +7,7 @@ __all__ = (
 
 from abc import ABC
 import enum
+import imp
 import re
 from tkinter import image_names
 from turtle import pos
@@ -18,6 +19,11 @@ from typing import List, Dict, Union
 import glob
 from abc import ABC, abstractmethod
 import cv2
+from dataset.flogging import debug_load_img
+import sys, os
+from functools import lru_cache
+
+sys.path.append(os.getcwd())
 
 PathLike = Union[Path, str]
 
@@ -39,6 +45,10 @@ class Bbox():
         return np.sqrt((self.x2 - self.x1)**2 + (self.y2 - self.y1)**2)
 
 
+
+#Дебаг считавания (декоратор)
+@debug_load_img
+# @lru_cache
 def load_img(filepath, dtype = float, convert_type = None)-> np.array:
     # if convert_type is not None:
     #     img = Image.open(filepath).convert(convert_type)
@@ -148,7 +158,7 @@ class ImageDirDataset(dict):
         self.path = path
         self.paths = get_paths(self.path)
         self.image_files = [p for p in self.paths if Path(p).is_file() and p.split('.')[-1] in IMG_FORMATS]
-
+    
     def __getitem__(self, index):
         if isinstance(index,int):
             return {"name": self.image_files[index],"image":load_img(self.image_files[index])}
