@@ -8,7 +8,8 @@ from typing import List, Dict
 import glob
 
 def get_paths_from_dirs(dirs: List[str], formats:List[str]) -> List[str]:
-    assert isinstance(dirs, List)
+    if isinstance(dirs, str):
+        dirs = [dirs]
     assert isinstance(formats, List)
     paths = []
     for dir in dirs:

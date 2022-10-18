@@ -48,7 +48,6 @@ class Bbox():
 
 #Дебаг считавания (декоратор)
 @debug_load_img
-# @lru_cache
 def load_img(filepath, dtype = float, convert_type = None)-> np.array:
     # if convert_type is not None:
     #     img = Image.open(filepath).convert(convert_type)
