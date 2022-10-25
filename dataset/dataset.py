@@ -6,6 +6,11 @@ __all__ = (
 )
 
 from abc import ABC
+import sys, os
+from functools import lru_cache
+
+sys.path.append(os.getcwd())
+
 import enum
 import imp
 import re
@@ -19,12 +24,10 @@ from typing import List, Dict, Union
 import glob
 from abc import ABC, abstractmethod
 import cv2
-from dataset.flogging import debug_load_img
-import sys, os
-from functools import lru_cache
 
-sys.path.append(os.getcwd())
 
+
+from flogging import debug_load_img
 PathLike = Union[Path, str]
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp' 
