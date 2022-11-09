@@ -1,7 +1,7 @@
 from json import load
 from sklearn.datasets import load_sample_image
 from dataset import load_img
-from utils import get_paths_from_dirs
+from .path_utils import get_paths_from_dirs
 import cv2
 from typing import List, Tuple,Dict
 import os
@@ -20,7 +20,7 @@ def resize_images(inpt_dir: List, formats: List, out_dir: str, out_imag_size: Tu
         os.makedirs(out_dir,)
     out_dir = Path(out_dir)
     for p in paths:
-        img = load_img(p, dtype)
+        img = load_img(str(p), dtype)
         img = cv2.resize(img, out_imag_size)
         cv2.imwrite(str(out_dir.joinpath(p.name)), img)
 

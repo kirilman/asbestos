@@ -1,8 +1,8 @@
-# from .path_utils import get_paths_from_dirs
+from .path_utils import get_paths_from_dirs
 from pathlib import Path
 import os
 from dataset import PathLike
-from abc import abstractmethod, ABC
+from abc import abstractmethod, ABC, ABCMeta
 from pycocotools.coco import COCO
 import pandas as pd
 import json
@@ -14,7 +14,7 @@ class Extractor:
         paths = get_paths_from_dirs()
 
 
-class FileProcessing(ABC):
+class FileProcessing(metaclass = ABCMeta):
     def __init__(self, file):
         self.file = file
         pass
@@ -26,10 +26,10 @@ class FileProcessing(ABC):
 def create_segmentation_frame(data):
     return pd.DataFrame({d['id']: d for d in data['annotations']}).T
 
-def get_segmentation_from_frame(frame: pd.DataFrame, img_id: int, category_id:int, images):
+def get_segmentation_from_frame(frame: pd.DataFrame, img_id: int, category_id:int, image):
     maska = (frame.image_id == img_id) & (frame.category_id == category_id)
-    h_img = images[img_id]['height']
-    w_img = images[img_id]['width']
+    h_img = image['height']
+    w_img = image['width']
     return [{category_id: normalize_segment(np.array(list(s[0])), h_img, w_img)} for s in frame[maska].segmentation]
 
 def normalize_segment(segment, h_img, w_img):
@@ -43,19 +43,20 @@ class JsonSegmentProcessing(FileProcessing):
         super().__init__(file)
         self._category_id = category_id
         self._save_dir = Path(save_dir)
+        self._debug = False
 
     def process(self):
         with open(self.file, 'r') as file:
             data = json.load(file)
 
         frame = create_segmentation_frame(data)
-        images_names = {f['id']:f['file_name'] for f in data['images']}
-        #cЧИТАТЬ ОБЪЕКТ, ПОЛОЖИТЬ ИМЕНА В dict
-        for img_id in images_names.keys():
-            segmentation = get_segmentation_from_frame(frame, img_id, self._category_id, data['images'])
-            save_path = str(self._save_dir / images_names[img_id].split('/')[-1].split('.')[-2]) + '.txt'
+        images_names = {f['id']:{'file_name':f['file_name'],'width':f['width'], 'height':f['height']} for f in data['images']}
+        for img_id, image in images_names.items():
+            segmentation = get_segmentation_from_frame(frame, img_id, self._category_id, image)
+            save_path = str(self._save_dir / images_names[img_id]['file_name'].split('/')[-1].split('.')[-2]) + '.txt'
             self._save_segmentation(segmentation, save_path)
-            print(img_id, save_path)
+            if self._debug:
+                print(img_id, save_path)
         return segmentation
 
     def _save_segmentation(self, segmentation, save_path):
@@ -67,6 +68,3 @@ class JsonSegmentProcessing(FileProcessing):
                         file.write('{0:.4f}'.format(c)+' ')            
                 file.write('\n')
 
-file_name = '/home/kirilman/Project/dataset/detection_set/coco_labels/pits_stones_detections_161120.json'
-proccesor = JsonSegmentProcessing(file_name, 1, '/home/kirilman/Project/asbestos/notebooks/test/')
-proccesor.process()
