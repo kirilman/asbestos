@@ -7,7 +7,7 @@ from pycocotools.coco import COCO
 import pandas as pd
 import json
 import numpy as np
-
+from shapely.geometry import Polygon
 
 class Extractor:
     def __init__(path_for_processing: PathLike):
@@ -23,6 +23,11 @@ class FileProcessing(metaclass = ABCMeta):
     def process(self):
         pass
 
+def read_segmentation_labels(p: PathLike):
+    with open(p, 'r') as f:
+        lines = f.readlines()
+        return [np.fromstring(line, sep=' ') for line in lines]
+
 def create_segmentation_frame(data):
     return pd.DataFrame({d['id']: d for d in data['annotations']}).T
 
@@ -36,7 +41,6 @@ def normalize_segment(segment, h_img, w_img):
     segment[::2] /=w_img
     segment[1::2]/=h_img
     return segment
-
 
 class JsonSegmentProcessing(FileProcessing):
     def __init__(self, file, category_id, save_dir):
@@ -68,3 +72,31 @@ class JsonSegmentProcessing(FileProcessing):
                         file.write('{0:.4f}'.format(c)+' ')            
                 file.write('\n')
 
+
+class SegmentSquareFilter(FileProcessing):
+    """
+        tresh: float 0.005 
+    """
+    def __init__(self, file, save_dir, tresh):
+        super().__init__(file)
+        self._save_dir = Path(save_dir)
+        self._tresh = tresh
+
+    def process(self):
+        labels = read_segmentation_labels(self.file)
+        with open(self._save_dir / str(self.file.name), 'w') as f:
+            for label in labels:
+                mask = label[1:]
+                p = Polygon([(x,y) for x,y in zip(mask[0::2], mask[1::2])] )
+                if p.area > self._tresh:
+                    f.write(self.__to_string(label))
+
+    def __to_string(self, arr):
+        s = ""
+        for i,x in enumerate(arr):
+            if i == 0:
+                s+=str(int(x))+" "
+            else:
+                s+=str(np.round(x,4))+" "
+        s = s[:-1] + "\n"
+        return s
