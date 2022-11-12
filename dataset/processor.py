@@ -77,10 +77,11 @@ class SegmentSquareFilter(FileProcessing):
     """
         tresh: float 0.005 
     """
-    def __init__(self, file, save_dir, tresh):
+    def __init__(self, file, save_dir, tresh, is_more):
         super().__init__(file)
         self._save_dir = Path(save_dir)
         self._tresh = tresh
+        self._is_more = is_more
 
     def process(self):
         labels = read_segmentation_labels(self.file)
@@ -88,8 +89,13 @@ class SegmentSquareFilter(FileProcessing):
             for label in labels:
                 mask = label[1:]
                 p = Polygon([(x,y) for x,y in zip(mask[0::2], mask[1::2])] )
-                if p.area > self._tresh:
-                    f.write(self.__to_string(label))
+
+                if self._is_more:
+                    if p.area > self._tresh:
+                        f.write(self.__to_string(label))
+                else:
+                    if p.area < self._tresh:
+                        f.write(self.__to_string(label))
 
     def __to_string(self, arr):
         s = ""
