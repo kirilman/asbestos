@@ -1,4 +1,3 @@
-import imp
 from typing import Tuple
 import numpy as np
 import os
@@ -6,7 +5,8 @@ import glob
 import cv2
 import albumentations as A
 import random
-from dataset.dataset import load_img, PathLike
+
+from dataset import load_img, PathLike
 from pathlib import Path
 from tqdm import tqdm
 
@@ -50,6 +50,10 @@ def img2label_paths(img_paths):
     sa, sb = f'{os.sep}images{os.sep}', f'{os.sep}labels{os.sep}'  # /images/, /labels/ substrings
     return [sb.join(x.rsplit(sa, 1)).rsplit('.', 1)[0] + '.txt' for x in img_paths]
 
+def read_segmentation_labels(p: PathLike):
+    with open(p, 'r') as f:
+        lines = f.readlines()
+        return [np.fromstring(line, sep=' ') for line in lines]
 
 class Albumentations:
     # YOLOv5 Albumentations class (optional, only used if package is installed)
@@ -136,4 +140,62 @@ def generate_dataset(path_2_data : PathLike,
         cv2.imwrite(path_2_save / "{}.jpg".format(i), image)
         np.savetxt( path_2_save / "{}.txt".format(i),labels)
 
+class segmentation_yolo_generator(yolo_image_generator):
+    def __init__(self,
+                 path: PathLike,
+                 image_size: Tuple,
+                 max_count:int,
+                 albumentation: Albumentations) -> None:
+        super(segmentation_yolo_generator,self).__init__(path, image_size, max_count)
+        self.albumentations = albumentation
 
+    def __next__(self):
+        if self.current_gen_image > self.max_count:
+            raise StopIteration
+        if self.count >= self.__len__():
+            self.count = 0
+        path = self.im_files[self.count]
+        img = cv2.imread(path)
+        labels = read_segmentation_labels(self.labels_files[self.count])
+        self.count+=1
+        self.current_gen_image+=1
+        # try:
+        img, labels = self.albumentations(img, labels)
+        # except Exception:
+            # print('Error alb ',path)
+        return img, labels
+        
+
+class SegAlbumentations:
+    # YOLOv5 Albumentations class (optional, only used if package is installed)
+    def __init__(self):
+        self.transform = None
+        # T = [
+        #     A.MedianBlur(p=0.5),
+        #     A.ToGray(p=0.5),
+        #     A.CLAHE(p=0.5),
+        #     A.RandomBrightnessContrast(contrast_limit = 0.05, p=0.5),
+        #     A.RandomGamma(p=0.5),
+        #     A.VerticalFlip(p = 0.5),
+        #     A.Flip(p = 0.5)
+        #     # A.ImageCompression(quality_lower=0.9, p=0.1)
+        #     ]  # transforms
+        T = [ A.VerticalFlip(p = 0.5),
+              A.MedianBlur(p=0.5),
+              A.Flip(p = 0.1)]
+        self.transform = A.Compose(T, bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
+
+    def __call__(self, im, labels, p=1.0):
+        if self.transform and random.random() < p:
+            new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
+            im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+        return im, labels
+
+alb = SegAlbumentations()
+g = segmentation_yolo_generator('/home/kirilman/Project/dataset/segmentation/seg', 512, 100, alb)
+import matplotlib.pyplot as plt
+
+for i in range(10):
+    img, l = next(iter(g))
+    plt.imshow(img)
+    plt.show()

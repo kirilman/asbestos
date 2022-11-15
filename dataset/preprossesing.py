@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+from shapely.geometry import Polygon as sPolygon
+
 
 def resize_images(inpt_dir: List, formats: List, out_dir: str, out_imag_size: Tuple, kwargs: Dict):
     if "dtype" in kwargs: 
@@ -93,3 +95,39 @@ def create_annotation_mask(coco_set, img_indx, image_root, category_name = 'asbe
         h = coco_set.loadImgs(1)[0]['height']
         mask = np.zeros((h,w))
     return mask
+
+def create_polygon(segment):
+    return sPolygon([(x,y) for x,y in zip(segment[0::2],segment[1::2])])
+
+def merge_serments(train_segments, other_segments, squre_thresh = 1000):
+    ans = train_segments.copy()
+    for segment in other_segments:
+        p1 = create_polygon(segment[1:])
+        p1 = p1.buffer(0)
+        interection_segments = []
+        for train_segment in train_segments:
+            p2 = create_polygon(train_segment[1:])
+            p2 = p2.buffer(0)
+            area_interection = p1.intersection(p2).area
+            if area_interection > 0:
+                interection_segments.append(segment)
+        if len(interection_segments) == 0:
+            if p1.area > squre_thresh: #tresh добавит
+                ans.append(segment)
+        elif len(interection_segments) == 1:
+            p2 = create_polygon(interection_segments[0][1:])
+            p2 = p2.buffer(0)
+            iou = p1.intersection(p2).area / p1.union(p2).area
+            if iou>0.85 and iou<0.99:
+                ans.append(segment)
+            if iou<0.2:
+                ans.append(segment)
+        else:
+            s = 0
+            for inter_seg in interection_segments:
+                p2 = create_polygon(inter_seg[1:])
+                p2 = p2.buffer(0)
+                s+=p1.intersection(p2).area/p1.union(p2).area
+            if s/len(interection_segments) < 0.15:
+                ans.append(segment)
+    return ans 
