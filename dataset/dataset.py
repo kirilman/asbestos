@@ -11,11 +11,6 @@ from functools import lru_cache
 
 sys.path.append(os.getcwd())
 
-import enum
-import imp
-import re
-from tkinter import image_names
-from turtle import pos
 import numpy as np
 from PIL import Image
 import os 
