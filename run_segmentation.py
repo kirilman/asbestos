@@ -52,8 +52,12 @@ def run_validation_for_model(path, path_test_yml):
     models = list(filter(lambda x: x.name.split('/')[-1] == 'best.pt', models))
     print(len(models), models[-1])
     for path_2_model in models:
-        name = str(models[0]).split('/')[-3]
-        p = subprocess.Popen(['python', './yolov5/segment/val.py', '--data', path_test_yml, '--weight', path_2_model, '--imgsz', '512','--batch-size', '1', '--name', name])
+        name = str(path_2_model).split('/')[-3]
+        if task == 'val_dir':
+            p = subprocess.Popen(['python', './yolov5/segment/val.py', '--data', path_test_yml, '--weight', path_2_model, '--imgsz', '512','--batch-size', '1', '--name', name])
+        else:
+            p = subprocess.Popen(['python', './yolov5/segment/predict.py', '--source', path_test_yml, '--weight', path_2_model, '--imgsz', '512','--name', name])
+
         p.wait()
         print('-----\n')
 
@@ -67,4 +71,6 @@ if __name__ == "__main__":
     path_2_model = args.path
     path_2_config = args.path_yaml
     if task == 'val_dir':
+        run_validation_for_model(path_2_model, path_2_config)
+    elif task =='pred':
         run_validation_for_model(path_2_model, path_2_config)
