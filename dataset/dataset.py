@@ -24,7 +24,7 @@ from typing import List, Dict, Union
 import glob
 from abc import ABC, abstractmethod
 import cv2
-from flogging import debug_load_img
+from dataset.flogging import debug_load_img
 PathLike = Union[Path, str]
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp' 
