@@ -13,7 +13,7 @@ def plot_masks(segments: List[np.ndarray], fig = None, color = [0,0,1], alpha = 
         ax = fig.gca()
         
     for i,label in enumerate(segments):
-        polygon = Polygon([(x,y) for x,y in zip(label[1::2],label[2::2])], alpha)
+        polygon = Polygon([(x,y) for x,y in zip(label[0::2],label[1::2])], alpha)
         polygon.set_color(color)
         polygon.set_alpha(alpha)
         ax.add_patch(polygon)

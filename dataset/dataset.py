@@ -2,7 +2,8 @@ __all__ = (
     "is_image",
     "load_img",
     "ImageDirDataset",
-    "get_paths"
+    "get_paths",
+    "load_txt"
 )
 
 from abc import ABC
