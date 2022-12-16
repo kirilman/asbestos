@@ -14,6 +14,9 @@ def fitness(x):
     w = [0.0, 0.0, 0.1, 0.9]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
     return (x[:, :4] * w).sum(1)
 
+def fitness_map_wasserstein(x, distance):
+    w = [0.9, 0.1]
+    return (1-distance)*w[0] + x[:,3]*w[1]
 
 def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names=()):
     """ Compute the average precision, given the recall and precision curves.

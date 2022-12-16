@@ -43,25 +43,19 @@ def ks_metric(a,b):
     r = kstest(a, b)
     return {'statistic': r.statistic, 'pvalue': r.pvalue}
 
-def predict_val(root, epoch, epochs, last_weight, val_path, imgsz, option):
+def predict_val(save_dir, epoch, epochs, last_weight, val_path, imgsz, option):
     """
         Predict validation images by current model and calculate metric
         Returns:
             r: float metric value
     """
-    r = {}
-    p = subprocess.Popen(['python',str(root / "detect.py"), '--weights', str(last_weight),
-                                '--source',str(val_path), 
-                                '--img-size', str(imgsz), '--name', str(option.name) ,'--save-txt','--exist-ok'])
-
-    p.wait()
-    
-    detect_save_dir = str(Path(str(option.project).replace('train','detect')) / option.name / 'labels')
-    predict_labels = get_bbox_size_arr(detect_save_dir)
+    save_dir_labels = save_dir / 'labels'
+    predict_labels = get_bbox_size_arr(save_dir_labels)
     train_labels   = get_bbox_size_arr(str(val_path))
     print(len(predict_labels), len(train_labels))
-    p.kill()
     r = wasserstein_distance(predict_labels, train_labels)
     if epoch < epochs - 1:
-        shutil.rmtree(detect_save_dir)
+        files_labels = os.listdir(save_dir_labels)
+        for f in files_labels:
+            os.remove(save_dir_labels / Path(f))
     return r

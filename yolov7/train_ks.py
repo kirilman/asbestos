@@ -36,6 +36,7 @@ from utils.torch_utils import ModelEMA, select_device, intersect_dicts, torch_di
 from utils.wandb_logging.wandb_utils import WandbLogger, check_wandb_resume
 from distance.distance_metric import predict_val
 import pandas as pd
+from utils.metrics import fitness_map_wasserstein
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +48,9 @@ def train(hyp, opt, device, tb_writer=None):
     # Directories
     wdir = save_dir / 'weights'
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
+    (save_dir / 'labels').mkdir(parents=True, exist_ok=True)  # make dir
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
-    print(last)
     results_file = save_dir / 'results.txt'
 
     # Save run settings
@@ -291,7 +292,7 @@ def train(hyp, opt, device, tb_writer=None):
     model.class_weights = labels_to_class_weights(dataset.labels, nc).to(device) * nc  # attach class weights
     model.names = names
     log_train   = {}
-    best_distance = 1E9
+    best_distance = 0.0
     # Start training
     t0 = time.time()
     nw = max(round(hyp['warmup_epochs'] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
@@ -472,21 +473,38 @@ def train(hyp, opt, device, tb_writer=None):
                     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 elif ((epoch+1) % 25) == 0:
                     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
-                elif epoch >= (epochs-5):
-                    torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
+                # elif epoch >= (epochs-5):
+                #     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 if wandb_logger.wandb:
                     if ((epoch + 1) % opt.save_period == 0 and not final_epoch) and opt.save_period != -1:
                         wandb_logger.log_model(
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
-        
 
-        distance = predict_val(Path().cwd(), epoch, epochs, last, test_path, imgsz, opt)
-        log_train[epoch] = {'d': distance}
-        
-        if distance < best_distance:
-            best_distance = distance
+        results_fitness, _, _ = test.test(data_dict,
+                            batch_size=batch_size * 2,
+                            imgsz=imgsz_test,
+                            conf_thres=0.1,
+                            iou_thres=0.7,
+                            model=ema.ema,
+                            single_cls=opt.single_cls,
+                            dataloader=testloader,
+                            save_dir=save_dir,
+                            compute_loss=compute_loss,
+                            is_coco=is_coco,
+                            save_txt=True)
+
+        distance = predict_val(save_dir, epoch, epochs, last, test_path, imgsz, opt)  
+        composite_fitness = float(fitness_map_wasserstein(np.array(results_fitness).reshape(1, -1), distance))
+        log_train[epoch] = {'w': distance,
+                            'fitness': float(fi),
+                            'composite_fitness': composite_fitness,
+                            'mAP05':float(results_fitness[2]),
+                            'mAP95':float(results_fitness[3])}
+        print("{:.3f} {:.3f} {:.3f} {:.3f} {:.3f}\n".format(*log_train[epoch].values()))
+        if composite_fitness > best_distance and epoch > 20:
+            best_distance = composite_fitness
         # Save model with best distance
-        if best_distance == distance:
+        if best_distance == composite_fitness:
             torch.save(ckpt, wdir / f'distance_ep_{epoch}.pt')
         del ckpt
 
