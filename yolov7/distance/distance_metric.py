@@ -45,8 +45,7 @@ def ks_metric(a,b):
 
 def predict_val(save_dir, epoch, epochs, last_weight, val_path, imgsz, option):
     """
-        Predict validation images by current model and calculate metric
-        Returns:
+        get wasserstein distance from labels
             r: float metric value
     """
     save_dir_labels = save_dir / 'labels'
