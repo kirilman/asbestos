@@ -501,7 +501,7 @@ def train(hyp, opt, device, tb_writer=None):
                             'mAP05':float(results_fitness[2]),
                             'mAP95':float(results_fitness[3])}
         print("{:.3f} {:.3f} {:.3f} {:.3f} {:.3f}\n".format(*log_train[epoch].values()))
-        if composite_fitness > best_distance and epoch > 20:
+        if composite_fitness > best_distance and epoch > 50:
             best_distance = composite_fitness
         # Save model with best distance
         if best_distance == composite_fitness:

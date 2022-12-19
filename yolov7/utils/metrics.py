@@ -15,7 +15,7 @@ def fitness(x):
     return (x[:, :4] * w).sum(1)
 
 def fitness_map_wasserstein(x, distance):
-    w = [0.8, 0.2]
+    w = [0.9, 0.1]
     return (1-distance)*w[0] + x[:,3]*w[1]
 
 def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names=()):
