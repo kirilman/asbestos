@@ -1,17 +1,13 @@
 import numpy as np
 import cv2 as cv
-from matplotlib import pyplot as plt
 import os
 import sys
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import pandas as pd
-import torch
-
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
-import numpy as np
 from typing import List
-import cv2
+
 
 def plot_masks(segments: List[np.ndarray], fig = None, color = [0,0,1], alpha = 1):
     if fig:
@@ -43,15 +39,44 @@ def plot_bboxs(image, bboxs, color = None, line_thickness = None, sline = cv.LIN
         res_image = cv.rectangle(res_image, c1, c2, color, tl, lineType=sline)
     return res_image
 
+def read_img(path):
+    image = Image.read(path)
+
 class Annotator():
-    def __init__(self, img):
+    def __init__(self, img, line_width = None):
         self.img = img if isinstance(img, Image.Image) else Image.fromarray(img)
-    
+        self.draw = ImageDraw.Draw(self.img)
+        h,w = self.img.size
+        self.lw = line_width or max(round(sum([h,w]) / 2 * 0.003), 2)  # line width
+
     def masks(self, segments, color = [0,0,0], alpha = 1):
         for segment in segments:
-            self.img = cv2.fillPoly(np.array(self.img), pts = [segment], color = color)
+            self.img = cv.fillPoly(np.array(self.img), pts = [segment], color = color)
 
     def result(self):
         return self.img
 
-        
+    def add_box(self, box, label = '', color = (128,128,128)):
+        """
+            Add bbox on image
+        """
+        self.draw.rectangle(box, width = self.lw)
+
+    def add_polygone(self, polygone, color = (128, 128, 0)):
+        # [Tuple()]
+        self.draw.polygon(polygone, width=self.lw, outline = 'blue')
+
+if __name__ == '__main__':
+    # img = cv.imread('Test.jpeg')
+
+    img = cv.imread('Tes,t.jpeg')
+    ann = Annotator(img,25)
+    # ann.add_box([5,5, 1000, 1000])
+    t = np.linspace(0, 2*np.pi, 180)
+    R = 200.
+    xx = 1000 + R*np.cos(t)
+    yy = 1000 + R*np.sin(t)
+    polygone = np.zeros(len(t)*2)
+    polygone = [(x,y) for x,y in zip(xx,yy)]
+    ann.add_polygone(polygone, color=(128,0,128))
+    ann.img.save('Test.jpeg')
