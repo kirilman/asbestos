@@ -1,4 +1,4 @@
-from .path_utils import get_paths_from_dirs
+from .path_utils import get_paths_from_dirs, get
 from pathlib import Path
 import os
 from dataset import PathLike
@@ -8,6 +8,9 @@ import pandas as pd
 import json
 import numpy as np
 from shapely.geometry import Polygon
+from .dataset import get_paths
+import shutil
+
 
 class Extractor:
     def __init__(path_for_processing: PathLike):
@@ -106,3 +109,81 @@ class SegmentSquareFilter(FileProcessing):
                 s+=str(np.round(x,4))+" "
         s = s[:-1] + "\n"
         return s
+
+
+class MergeAnnotation:
+    """
+        Merge annotation files from dirs to one json file using coco
+    """
+    def __init__(self, root_direcroty) -> None:
+
+        self.path_to_annotations = list(filter( lambda x: True if x.split('.')[-1] == 'json' else False, get_paths(root_direcroty)))
+        self.merge_annotations  = {}
+        self.merge_images       = {}
+        self.image_indexs       = {}
+
+    def process(self):
+        image_id = 1
+        segment_id = 1
+        for path in self.path_to_annotations:
+            coco = COCO(path)
+            for k, image in coco.imgs.items():  
+                new_image = image.copy()
+                old_name = image['file_name']
+                new_name = self.__create_name(image['file_name'])
+                new_image['file_name'] = new_name
+                new_image['id'] = image_id
+                self.merge_images[image_id] = new_image
+                self.image_indexs[old_name] = {'id':image['id'],'new_id': image_id, 'new_name': new_image['file_name']}
+                image_id+=1
+                
+            for k, ann in coco.anns.items():
+                old_image_name = coco.imgs[ann['image_id']]['file_name']
+                new_image_id = self.image_indexs[old_image_name]['new_id']
+                new_annotation = ann.copy()
+                new_annotation['id'] = segment_id
+                new_annotation['image_id'] = new_image_id
+                self.merge_annotations[segment_id] = new_annotation
+                segment_id+=1
+        pass
+    
+    def __create_name(self, name):
+        assert isinstance(name, str), "name"
+        parts = name.split('/')
+        if len(parts) > 1:
+            new_name = parts[-2] + "_" + parts[-1]
+        else:
+            new_name = name
+        return new_name
+
+    def save(self, out_dir, file_name):
+        """
+            Save merge files to json format
+        """
+        p = Path(out_dir)
+        p_image = p / 'images'
+        if p.is_dir():
+            shutil.rmtree(out_dir)
+            p.mkdir(parents=True, exist_ok = True)
+            p_image.mkdir()
+        else:
+            p_image.mkdir()
+
+        coco = COCO(self.path_to_annotations[-1])
+        res = {
+                "info":        coco.dataset['info'],
+                "licenses":    coco.dataset['licenses'],
+                "categories":  coco.dataset['categories'],
+                "images":      list(self.merge_images.values()),
+                "segment_info":list(self.merge_annotations.values())
+              }
+        with open(p / file_name, 'w') as f:
+            json.dump(res, f)
+
+        for path in self.path_to_annotations:
+            coco = COCO(path)
+            for k, image in coco.imgs.items():
+                file_name = image['file_name']
+                path_2_img = Path(path).parents[1] / 'images' / file_name
+                new_file_name = self.image_indexs[file_name]['new_name']
+                shutil.copy(path_2_img, p_image / new_file_name)
