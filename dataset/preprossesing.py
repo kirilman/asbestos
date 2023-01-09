@@ -1,5 +1,4 @@
 from json import load
-from sklearn.datasets import load_sample_image
 from dataset import load_img
 from .  path_utils import get_paths_from_dirs
 import cv2

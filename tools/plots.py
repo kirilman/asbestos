@@ -67,8 +67,6 @@ class Annotator():
         self.draw.polygon(polygone, width=self.lw, outline = 'blue')
 
 if __name__ == '__main__':
-    # img = cv.imread('Test.jpeg')
-
     img = cv.imread('Tes,t.jpeg')
     ann = Annotator(img,25)
     # ann.add_box([5,5, 1000, 1000])
