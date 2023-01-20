@@ -1,3 +1,5 @@
+from re import S
+from cffi.model import qualify
 import numpy as np
 import cv2 as cv
 import os
@@ -49,9 +51,21 @@ class Annotator():
         h,w = self.img.size
         self.lw = line_width or max(round(sum([h,w]) / 2 * 0.003), 2)  # line width
 
-    def masks(self, segments, color = [0,0,0], alpha = 1):
+    def masks(self, segments:List[np.array], color = [0,0,0], alpha = 0.9):
+        """
+            List segments: np.array([[x1, y1], [x2, y2], .. ,[xn,yn]])
+        """
+        assert isinstance(segments, List) and type(segments[0][0][0] == np.int64), 'segments not List'
         for segment in segments:
-            self.img = cv.fillPoly(np.array(self.img), pts = [segment], color = color)
+            assert len(segment.shape) == 2, "Every segment have shape size 2"
+        image = self.img.copy()
+        for segment in segments:
+            image = cv.fillPoly(np.array(image), pts = [segment], color = color) 
+        
+        image = cv.addWeighted(np.array(self.img)   , alpha, image, 1 - alpha, 0.0)
+        #Копируем обратно
+        self.img = Image.fromarray(image)
+        self.draw = ImageDraw.Draw(self.img)
 
     def result(self):
         return self.img
@@ -65,6 +79,9 @@ class Annotator():
     def add_polygone(self, polygone, color = (128, 128, 0)):
         # [Tuple()]
         self.draw.polygon(polygone, width=self.lw, outline = 'blue')
+
+    def save(self, filename):
+        self.img.save(filename, quality = 100)
 
 if __name__ == '__main__':
     img = cv.imread('Tes,t.jpeg')

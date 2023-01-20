@@ -110,6 +110,12 @@ class SegmentSquareFilter(FileProcessing):
         s = s[:-1] + "\n"
         return s
 
+def _todf(fjson):
+    return pd.DataFrame(fjson)
+
+def train_test_splite(path_2_image, path_2_anno):
+    coco = COCO(path_2_anno)
+    images = _todf(coco.imgs).T
 
 class MergeAnnotation:
     """
@@ -167,13 +173,19 @@ class MergeAnnotation:
             p.mkdir(parents=True, exist_ok = True)
             p_image.mkdir()
         else:
-            p_image.mkdir()
+            p_image.mkdir() 
 
         coco = COCO(self.path_to_annotations[-1])
+        categories = []
+        for path in self.path_to_annotations:
+            coco = COCO(path);
+            for cat in coco.dataset['categories']:
+                if not cat['name'] in [cat['name'] for cat in categories]:
+                    categories.append(cat)
         res = {
                 "info":        coco.dataset['info'],
                 "licenses":    coco.dataset['licenses'],
-                "categories":  coco.dataset['categories'],
+                "categories":  categories,
                 "images":      list(self.merge_images.values()),
                 "segment_info":list(self.merge_annotations.values())
               }
@@ -187,3 +199,5 @@ class MergeAnnotation:
                 path_2_img = Path(path).parents[1] / 'images' / file_name
                 new_file_name = self.image_indexs[file_name]['new_name']
                 shutil.copy(path_2_img, p_image / new_file_name)
+
+
