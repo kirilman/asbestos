@@ -72,13 +72,18 @@ class Annotator():
 
     def add_box(self, box, label = '', color = (128,128,128)):
         """
+            box: [x1, y1, x2, y2]
             Add bbox on image
         """
-        self.draw.rectangle(box, width = self.lw)
+        if isinstance(box, np.ndarray):
+            box = box.tolist()
+        if len(np.array(self.img).shape) == 1:
+            color = np.mean(color)
+        self.draw.rectangle(box, width = self.lw, outline = color)
 
     def add_polygone(self, polygone, color = (128, 128, 0)):
         # [Tuple()]
-        self.draw.polygon(polygone, width=self.lw, outline = 'blue')
+        self.draw.polygon(polygone, width=self.lw, outline = color)
 
     def save(self, filename):
         self.img.save(filename, quality = 100)
