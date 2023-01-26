@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 import pandas as pd
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
-from typing import List
+from typing import List, Tuple, Union
 
 
 def plot_masks(segments: List[np.ndarray], fig = None, color = [0,0,1], alpha = 1):
@@ -70,7 +70,7 @@ class Annotator():
     def result(self):
         return self.img
 
-    def add_box(self, box, label = '', color = (128,128,128)):
+    def add_box(self, box: List, label: str = '', color: Union [Tuple,List] = (128,128,128)):
         """
             box: [x1, y1, x2, y2]
             Add bbox on image
