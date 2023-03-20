@@ -1,0 +1,3 @@
+[submodule "ASBEST_VEINS_LABELING"]
+	path = ASBEST_VEINS_LABELING
+	url = git@github.com:kirilman/ASBEST_VEINS_LABELING.git
