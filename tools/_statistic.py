@@ -8,12 +8,13 @@ from ASBEST_VEINS_LABELING.labelutilits._path import list_ext
 from ASBEST_VEINS_LABELING.labelutilits._coco_func import coco_annotations
 from pycocotools.coco import COCO
 from pathlib import Path
-from typing import List
+from typing import List, Union
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-__all__ = ["collect_bbox_maxsize", "collect_segmentation_maxsize", "plot_hist", "collect_maxsize_from_json"]
+__all__ = ["collect_bbox_maxsize", "collect_segmentation_maxsize", "plot_hist", 
+           "collect_maxsize_from_json", "collect_height_weight_mean_bbox"]
 
 def xywh2xyxy(x):
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -58,6 +59,7 @@ def max_box_value(x1, y1, x2, y2):
 
 def collect_bbox_maxsize(path_2_label, image_names = None):
     """
+        Collect box max size from directroy with .txt coco files 
         Return:
             np.ndarray: bbox_sizes 
     """
@@ -113,6 +115,32 @@ def collect_segmentation_maxsize(segment_file: str, image_names: List = None):
         arr_max_size.append(max_distance)
     return np.array(arr_max_size)
 
+def collect_height_weight_mean_bbox(segment_file: str, normalize: bool = True)-> Union[np.ndarray, np.ndarray, np.ndarray]:
+    """
+        Return h,w, mean
+    """
+    coco = COCO(segment_file)
+    df = pd.DataFrame(coco.anns).T
+    df_image = pd.DataFrame(coco.imgs).T
+    image_dict = df_image.T.to_dict()
+
+    arr_height = []
+    arr_weight = []
+    arr_mean_hw = []
+    for k, row in enumerate(df.iterrows()):
+        bbox = np.array(row[1].bbox)
+        img_id = row[1].image_id  
+        IMAGE_W = image_dict[img_id]['width']
+        IMAGE_H = image_dict[img_id]['height']
+        xl, yl, w, h = bbox[0], bbox[1], bbox[2], bbox[3]
+        if normalize:
+            w /=IMAGE_W
+            h /=IMAGE_H
+        arr_height.append(h)
+        arr_weight.append(w)
+        arr_mean_hw.append((h+w)/2)
+    return np.array(arr_height), np.array(arr_weight), np.array(arr_mean_hw)
+
  # max_distance = max(max_distance, max_box_value(p1[0], p1[1], p2[0], p2[1]))
 
 def collect_maxsize_from_json(segment_file, image_names = None):
@@ -121,7 +149,26 @@ def collect_maxsize_from_json(segment_file, image_names = None):
     df_image = pd.DataFrame(coco.imgs).T
     if image_names is None:
         image_names = [p.split('/')[-1].split('.')[0] for p in list(df_image.file_name)]
-    df_image = df_image[df_image.file_name.apply(lambdag
+    df_image = df_image[df_image.file_name.apply(lambda x: Path(x).stem in list(image_names))]
+    arr_res = []
+    image_dict = df_image.T.to_dict()
+    for k, row in enumerate(frame.iterrows()):
+        image_id = row[1].image_id      
+        bbox = np.array(row[1].bbox)
+        if not image_id in image_dict:
+            continue
+        IMAGE_W = image_dict[image_id]['width']
+        IMAGE_H = image_dict[image_id]['height']
+        xl, yl, w, h = bbox[0], bbox[1], bbox[2], bbox[3]
+        x1 = xl/IMAGE_W
+        y1 = yl/IMAGE_H
+        x2 = (xl + w)/IMAGE_W
+        y2 = (yl + h)/IMAGE_H
+        arr_res.append(max_box_value(x1, y1, x2, y2))
+    return np.array(arr_res)
+
+class Statistic:
+    def __init__(self, path2anno, path2pred) -> None:
         self.path2anno = path2anno
         self.path2pred = path2pred
         if Path(self.path2pred).is_dir():
