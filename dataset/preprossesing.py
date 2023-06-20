@@ -1,6 +1,6 @@
 from json import load
 from dataset import load_img
-from .  path_utils import get_paths_from_dirs
+from path_utils import get_paths_from_dirs
 import cv2
 from typing import List, Tuple,Dict
 import os
@@ -130,3 +130,8 @@ def merge_serments(train_segments, other_segments, squre_thresh = 1000):
             if s/len(interection_segments) < 0.15:
                 ans.append(segment)
     return ans 
+
+if __name__ == "__main__":
+
+    resize_images(["/storage/reshetnikov/openpits/images_resize/"],["*"],"/storage/reshetnikov/openpits/sam_masks/img/",
+                  (762,602),{})

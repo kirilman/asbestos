@@ -187,7 +187,7 @@ class MergeAnnotation:
                 "licenses":    coco.dataset['licenses'],
                 "categories":  categories,
                 "images":      list(self.merge_images.values()),
-                "segment_info":list(self.merge_annotations.values())
+                "annotations":list(self.merge_annotations.values())
               }
         with open(p / file_name, 'w') as f:
             json.dump(res, f)

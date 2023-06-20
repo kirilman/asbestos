@@ -60,7 +60,11 @@ class Albumentations:
     def __init__(self):
         self.transform = None
         T = [ A.VerticalFlip(p = 0.5),
-              A.Flip(p = 0.5)]
+              A.CLAHE(p=0.2),
+              A.Blur(p=0.2),
+              A.Flip(p=0.5),
+              A.GaussNoise(p=0.2),
+              ]
         self.transform = A.Compose(T, bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels']))
 
     def __call__(self, im, labels, p=1.0):
@@ -81,6 +85,7 @@ class yolo_image_generator():
         self.im_files = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS]
         self.labels_files = img2label_paths(self.im_files)
         self.albumentations = Albumentations()
+        print(len(self.im_files), len(self.labels_files))
 
     def __iter__(self):
         self.count = 0
@@ -127,8 +132,8 @@ def generate_dataset(path_2_data : PathLike,
     path_2_save = Path(path_2_save) if isinstance(path_2_save, str) else path_2_save
     image_gen = yolo_image_generator(path_2_data, image_size, count_images)
     for i, (image, labels) in tqdm(enumerate(iter(image_gen))):
-        cv2.imwrite(path_2_save / "{}.jpg".format(i), image)
-        np.savetxt( path_2_save / "{}.txt".format(i),labels)
+        cv2.imwrite(str(path_2_save / "{}.jpg".format(i)), image)
+        np.savetxt( str(path_2_save / "{}.txt".format(i)),labels)
 
 class segmentation_yolo_generator(yolo_image_generator):
     def __init__(self,
@@ -181,11 +186,16 @@ class SegAlbumentations:
             im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
         return im, labels
 
-alb = SegAlbumentations()
-g = segmentation_yolo_generator('/home/kirilman/Project/dataset/segmentation/seg', 512, 100, alb)
-import matplotlib.pyplot as plt
 
-for i in range(10):
-    img, l = next(iter(g))
-    plt.imshow(img)
-    plt.show()
+generate_dataset('/storage/reshetnikov/openpits/fold/Fold_0/train/',
+                 '/storage/reshetnikov/openpits/fold/fold_0_alb/train',
+                 1500,
+                (1296, 1024))
+# alb = SegAlbumentations()
+# g = segmentation_yolo_generator('/home/kirilman/Project/dataset/segmentation/seg', 512, 100, alb)
+# import matplotlib.pyplot as plt
+
+# for i in range(10):
+#     img, l = next(iter(g))
+#     plt.imshow(img)
+#     plt.show()

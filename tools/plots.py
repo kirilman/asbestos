@@ -41,6 +41,39 @@ def plot_bboxs(image, bboxs, color = None, line_thickness = None, sline = cv.LIN
         res_image = cv.rectangle(res_image, c1, c2, color, tl, lineType=sline)
     return res_image
 
+
+def drawline(img,pt1,pt2,color,thickness=1,gap=10):
+    dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
+    pts= []
+    for i in  np.arange(0,dist,gap):
+        r=i/dist
+        x=int((pt1[0]*(1-r)+pt2[0]*r)+.5)
+        y=int((pt1[1]*(1-r)+pt2[1]*r)+.5)
+        p = (x,y)
+        pts.append(p)
+    s=pts[0]
+    e=pts[0]
+    i=0
+    for p in pts:
+        s=e
+        e=p
+        if i%2==1:
+            cv.line(img,s,e,color,thickness)
+        i+=1
+
+def drawpoly(img,pts,color,thickness):
+    s=pts[0]
+    e=pts[0]
+    pts.append(pts.pop(0))
+    for p in pts:
+        s=e
+        e=p
+        drawline(img,s,e,color,thickness)
+
+def drawrect(img,pt1,pt2,color,thickness=1):
+    pts = [pt1,(pt2[0],pt1[1]),pt2,(pt1[0],pt2[1])] 
+    drawpoly(img,pts,color,thickness)
+
 def read_img(path):
     image = Image.read(path)
 
@@ -70,7 +103,12 @@ class Annotator():
     def result(self):
         return self.img
 
-    def add_box(self, box: List, label: str = '', color: Union [Tuple,List] = (128,128,128)):
+    def add_box(self, 
+                box: List, 
+                label: str = '', 
+                color: Union[Tuple,List] = (128,128,128),
+                style = None,
+                thickness = 3):
         """
             box: [x1, y1, x2, y2]
             Add bbox on image
@@ -79,15 +117,27 @@ class Annotator():
             box = box.tolist()
         if len(np.array(self.img).shape) == 1:
             color = np.mean(color)
-        self.draw.rectangle(box, width = self.lw, outline = color)
+        if style == "dotted":
+            image = np.array(self.img)
+            x1, y1, x2, y2 = box
+            drawrect(image, (x1, y1), (x2, y2), color, thickness)
+            self.img = Image.fromarray(image)
+            self.draw = ImageDraw.Draw(self.img, width = thickness)
+        else:
+            self.draw.rectangle(box, width = self.lw, outline = color)
 
     def add_polygone(self, polygone, color = (128, 128, 0)):
         # [Tuple()]
         self.draw.polygon(polygone, width=self.lw, outline = color)
 
+    def add_text(self, x,y, text, color= (0,256,0), thickness = 2):
+        image = np.array(self.img)
+        image = cv.putText(image, str(text), (int(x), int(y)), cv.FONT_HERSHEY_SIMPLEX, 1, color, thickness, cv.LINE_AA)   
+        self.img = Image.fromarray(image)
+
     def save(self, filename):
         self.img.save(filename, quality = 100)
-
+        
 if __name__ == '__main__':
     img = cv.imread('Tes,t.jpeg')
     ann = Annotator(img,25)

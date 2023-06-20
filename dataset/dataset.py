@@ -20,7 +20,7 @@ from typing import List, Dict, Union
 import glob
 from abc import ABC, abstractmethod
 import cv2
-from .flogging import debug_load_img
+# from .flogging import debug_load_img
 PathLike = Union[Path, str]
 
 IMG_FORMATS = 'bmp', 'dng', 'jpeg', 'jpg', 'mpo', 'png', 'tif', 'tiff', 'webp' 
@@ -43,7 +43,7 @@ class Bbox():
 
 
 #Дебаг считавания (декоратор)
-@debug_load_img
+# @debug_load_img
 def load_img(filepath, dtype = float, convert_type = None)-> np.array:
     # if convert_type is not None:
     #     img = Image.open(filepath).convert(convert_type)

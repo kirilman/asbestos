@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 __all__ = ["collect_bbox_maxsize", "collect_segmentation_maxsize", "plot_hist", 
-           "collect_maxsize_from_json", "collect_height_weight_mean_bbox"]
+           "collect_max_bbox_from_json", "collect_height_weight_mean_bbox"]
 
 def xywh2xyxy(x):
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -63,6 +63,9 @@ def collect_bbox_maxsize(path_2_label, image_names = None):
         Return:
             np.ndarray: bbox_sizes 
     """
+    if not isinstance(image_names,list):
+        raise TypeError('image_names is not a list')
+
     labels_files = list_ext(path_2_label,'txt')
     # labels_files = list(filter(lambda x: True if x.split('.')[0] in image_names else False, labels_files))    
     bbox_sizes = []
@@ -81,13 +84,16 @@ def collect_segmentation_maxsize(segment_file: str, image_names: List = None):
         segment_file: str Path to dataset json format
         image_names: List contains names used files
     """
+    if not isinstance(image_names,list):
+        raise TypeError('image_names is not a list')
+                    
     coco = COCO(segment_file)
     frame = pd.DataFrame(coco.anns).T
     df_image = pd.DataFrame(coco.imgs).T
     print(df_image.shape)
-    if image_names:
+    if image_names and isinstance(image_names, list):
         df_image = df_image[df_image.file_name.apply(lambda x: Path(x).stem in list(image_names))]
-
+    
     image_names = [p.split('/')[-1].split('.')[0] for p in list(df_image.file_name)]
     image_dict = df_image.T.to_dict()
     ids = [img['id'] for img in image_dict.values()]
@@ -143,13 +149,21 @@ def collect_height_weight_mean_bbox(segment_file: str, normalize: bool = True)->
 
  # max_distance = max(max_distance, max_box_value(p1[0], p1[1], p2[0], p2[1]))
 
-def collect_maxsize_from_json(segment_file, image_names = None):
+def collect_max_bbox_from_json(segment_file, image_names = None):
+    """
+        Max bbox size from label json file
+        Return:
+            arr: np.array
+    """
+    if not isinstance(image_names,list):
+        raise TypeError('image_names is not a list')
+
     coco = COCO(segment_file)
     frame = pd.DataFrame(coco.anns).T
     df_image = pd.DataFrame(coco.imgs).T
     if image_names is None:
         image_names = [p.split('/')[-1].split('.')[0] for p in list(df_image.file_name)]
-    df_image = df_image[df_image.file_name.apply(lambda x: Path(x).stem in list(image_names))]
+    df_image = df_image[df_image.file_name.apply(lambda x: Path(x).stem in image_names)]
     arr_res = []
     image_dict = df_image.T.to_dict()
     for k, row in enumerate(frame.iterrows()):
