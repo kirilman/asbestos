@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 __all__ = ["collect_bbox_maxsize", "collect_segmentation_maxsize", "plot_hist", 
-           "collect_max_bbox_from_json", "collect_height_weight_mean_bbox"]
+           "collect_max_bbox_from_json", "collect_height_weight_mean_bbox", "collect_obbox_maxsize"]
 
 def xywh2xyxy(x):
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -59,11 +59,11 @@ def max_box_value(x1, y1, x2, y2):
 
 def collect_bbox_maxsize(path_2_label, image_names = None):
     """
-        Collect box max size from directroy with .txt coco files 
+        Collect box max size from directroy with .txt files 
         Return:
             np.ndarray: bbox_sizes 
     """
-    if not isinstance(image_names,list):
+    if not isinstance(image_names,list) and image_names != None:
         raise TypeError('image_names is not a list')
 
     labels_files = list_ext(path_2_label,'txt')
@@ -79,12 +79,49 @@ def collect_bbox_maxsize(path_2_label, image_names = None):
             bbox_sizes.append(max_box_value(box[0], box[1], box[2], box[3]))
     return np.array(bbox_sizes)
 
+def collect_obbox_maxsize(path_2_label, image_names = None):
+    """
+        Collect obb max size from directroy with .txt files 
+        Return:
+            np.ndarray: bbox_sizes 
+    """
+    if not isinstance(image_names,list) and image_names != None:
+        raise TypeError('image_names is not a list')
+
+    labels_files = list_ext(path_2_label,'txt')
+    if image_names == None:
+        image_names = [Path(x).stem for x in labels_files]
+    # labels_files = list(filter(lambda x: True if x.split('.')[0] in image_names else False, labels_files))    
+    bbox_sizes = []
+    ans =  []
+    for p in labels_files:
+        if not Path(p).stem in image_names:
+            continue 
+        with open(Path(path_2_label) / p, 'r') as f:
+            data = f.readlines()
+        for line in data:
+            ans.append(line.split(' ')[:8])
+    obb_coords = np.array(ans, dtype = np.float64)
+    bbox_sizes = []
+    for coords in obb_coords:
+        # points = [(x,y) for x, y in zip(coords[0::2],coords[1::2])]
+        # p1 = points[0]
+        # p2 = points[1]
+        # p3 = points[2]
+        # d1 = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+        # d2 = np.sqrt((p2[0] - p3[0])**2 + (p2[1] - p3[1])**2)
+
+        dx = np.sqrt((coords[0] - coords[2])**2 + (coords[1] - coords[3])**2)
+        dy = np.sqrt((coords[2] - coords[4])**2 + (coords[3] - coords[5])**2)
+        bbox_sizes.append(max(dx, dy))
+    return np.array(bbox_sizes)
+
 def collect_segmentation_maxsize(segment_file: str, image_names: List = None):
     """
         segment_file: str Path to dataset json format
         image_names: List contains names used files
     """
-    if not isinstance(image_names,list):
+    if not isinstance(image_names,list) and image_names != None:
         raise TypeError('image_names is not a list')
                     
     coco = COCO(segment_file)
@@ -101,10 +138,14 @@ def collect_segmentation_maxsize(segment_file: str, image_names: List = None):
     arr_max_size = []
     for k, row in enumerate(frame.iterrows()):
         segment = np.array(row[1].segmentation)
+        if len(segment)==0:
+            print('Empty segment in images {} with id = {}'.format(row[1].image_id, row[1].id))
+            continue
         image_id = row[1].image_id
         if not image_id in image_dict:
             print('Is not predict labels for image {}'.format(image_id))
             continue    
+        # print(segment.shape )
         x_coords = segment[0][::2]
         y_coords = segment[0][1::2]
         IMAGE_W = image_dict[image_id]['width']
@@ -155,7 +196,7 @@ def collect_max_bbox_from_json(segment_file, image_names = None):
         Return:
             arr: np.array
     """
-    if not isinstance(image_names,list):
+    if not isinstance(image_names,list) and image_names != None:
         raise TypeError('image_names is not a list')
 
     coco = COCO(segment_file)
@@ -192,8 +233,8 @@ class Statistic:
 
     def test(self, image_names = None):
         diagonal_arr = collect_bbox_maxsize(self.path2pred)
-        # max_size_arr = collect_segmentation_maxsize(self.path2anno, image_names)
-        max_size_arr = collect_maxsize_from_json(self.path2anno, image_names)
+        max_size_arr = collect_segmentation_maxsize(self.path2anno, image_names)
+        # max_size_arr = collect_maxsize_from_json(self.path2anno, image_names)
         result = {}
         result['kstest'] = stats.kstest(diagonal_arr, max_size_arr)
         result['mannwhitneyu'] = stats.mannwhitneyu(diagonal_arr, max_size_arr)
@@ -244,22 +285,5 @@ def plot_hist(box_sizes, segmt_sizes, save_name):
     plt.savefig(save_name)
     return fig
 
-if __name__ == "__main__":
-    ans = {}
-    ans_ks = {}
-    for p_fold in [p_fold for p_fold in Path("/storage/reshetnikov/runs/runs/v5/detect/").glob("*")]:    
-        path2pred = p_fold / "labels"
-        if p_fold.name[:4] == "conf":
-            continue
-        # path2pred = p_fold / "val"
-        names = [Path(x).stem for x in list_ext(path2pred)]
-        stat = Statistic("/storage/reshetnikov/openpits/annotations/instances_default.json", path2pred)
-        res = stat.test(names)
-        print(stat.__str__())
-        ans[p_fold]=res['mannwhitneyu']
-        ans_ks[p_fold] = res['kstest']
-
-    for k,v in ans.items():
-        print(k.name,":",v)
-    for k,v in ans_ks.items():
-        print(k.name,":",v)
+if __name__ == "__main__": 
+    segment_size = collect_segmentation_maxsize("/storage/reshetnikov/openpits/annotations/instances_default.json")

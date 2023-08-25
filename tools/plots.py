@@ -83,6 +83,7 @@ class Annotator():
         self.draw = ImageDraw.Draw(self.img)
         h,w = self.img.size
         self.lw = line_width or max(round(sum([h,w]) / 2 * 0.003), 2)  # line width
+        print(self.img.size)
 
     def masks(self, segments:List[np.array], color = [0,0,0], alpha = 0.9):
         """
@@ -99,6 +100,7 @@ class Annotator():
         #Копируем обратно
         self.img = Image.fromarray(image)
         self.draw = ImageDraw.Draw(self.img)
+
 
     def result(self):
         return self.img
@@ -126,9 +128,10 @@ class Annotator():
         else:
             self.draw.rectangle(box, width = self.lw, outline = color)
 
-    def add_polygone(self, polygone, color = (128, 128, 0)):
+    def add_polygone(self, polygone: List[Tuple[float, float]], color = (128, 128, 0)):
         # [Tuple()]
         self.draw.polygon(polygone, width=self.lw, outline = color)
+        
 
     def add_text(self, x,y, text, color= (0,256,0), thickness = 2):
         image = np.array(self.img)
@@ -137,9 +140,13 @@ class Annotator():
 
     def save(self, filename):
         self.img.save(filename, quality = 100)
+
+    @property
+    def image(self):
+        return np.array(self.img.convert("RGB"))
         
 if __name__ == '__main__':
-    img = cv.imread('Tes,t.jpeg')
+    img = cv.imread('/storage/reshetnikov/open_pits_merge/images/120.bmp')
     ann = Annotator(img,25)
     # ann.add_box([5,5, 1000, 1000])
     t = np.linspace(0, 2*np.pi, 180)
@@ -149,4 +156,8 @@ if __name__ == '__main__':
     polygone = np.zeros(len(t)*2)
     polygone = [(x,y) for x,y in zip(xx,yy)]
     ann.add_polygone(polygone, color=(128,0,128))
+    img = ann.image
+    print(img.shape, ann.img.size)
+    plt.imshow(img)
+    plt.show()
     ann.img.save('Test.jpeg')
