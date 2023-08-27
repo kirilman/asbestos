@@ -79,7 +79,7 @@ def collect_bbox_maxsize(path_2_label, image_names = None):
             bbox_sizes.append(max_box_value(box[0], box[1], box[2], box[3]))
     return np.array(bbox_sizes)
 
-def collect_obbox_maxsize(path_2_label, image_names = None):
+def collect_obbox_maxsize(path_2_label, path2anno, image_names = None):
     """
         Collect obb max size from directroy with .txt files 
         Return:
@@ -92,6 +92,12 @@ def collect_obbox_maxsize(path_2_label, image_names = None):
     if image_names == None:
         image_names = [Path(x).stem for x in labels_files]
     # labels_files = list(filter(lambda x: True if x.split('.')[0] in image_names else False, labels_files))    
+    coco = COCO(path2anno)
+    def get_w_h(imgs_dict, f_name):
+        for img in imgs_dict.values():
+            if img['file_name'].split('.')[0] == f_name:
+                return img['width'], img['height']
+
     bbox_sizes = []
     ans =  []
     for p in labels_files:
@@ -99,8 +105,14 @@ def collect_obbox_maxsize(path_2_label, image_names = None):
             continue 
         with open(Path(path_2_label) / p, 'r') as f:
             data = f.readlines()
+
+        W, H = get_w_h(coco.imgs, p.split('.')[0])
         for line in data:
-            ans.append(line.split(' ')[:8])
+            d = np.array(line.split(' ')[:8], dtype =np.float64)
+            d[:][::2] /=W
+            d[:][1::2] /=H
+            ans.append(d)
+
     obb_coords = np.array(ans, dtype = np.float64)
     bbox_sizes = []
     for coords in obb_coords:
@@ -110,9 +122,9 @@ def collect_obbox_maxsize(path_2_label, image_names = None):
         # p3 = points[2]
         # d1 = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
         # d2 = np.sqrt((p2[0] - p3[0])**2 + (p2[1] - p3[1])**2)
-
         dx = np.sqrt((coords[0] - coords[2])**2 + (coords[1] - coords[3])**2)
         dy = np.sqrt((coords[2] - coords[4])**2 + (coords[3] - coords[5])**2)
+        
         bbox_sizes.append(max(dx, dy))
     return np.array(bbox_sizes)
 
@@ -127,7 +139,7 @@ def collect_segmentation_maxsize(segment_file: str, image_names: List = None):
     coco = COCO(segment_file)
     frame = pd.DataFrame(coco.anns).T
     df_image = pd.DataFrame(coco.imgs).T
-    print(df_image.shape)
+    
     if image_names and isinstance(image_names, list):
         df_image = df_image[df_image.file_name.apply(lambda x: Path(x).stem in list(image_names))]
     
@@ -286,4 +298,8 @@ def plot_hist(box_sizes, segmt_sizes, save_name):
     return fig
 
 if __name__ == "__main__": 
-    segment_size = collect_segmentation_maxsize("/storage/reshetnikov/openpits/annotations/instances_default.json")
+    # segment_size = collect_segmentation_maxsize("/storage/reshetnikov/openpits/annotations/instances_default.json")
+    max_obb = collect_obbox_maxsize('/storage/reshetnikov/open_pits_merge/obb/',
+                                    "/storage/reshetnikov/open_pits_merge/annotations/annotations.json",
+                                    ['72']) 
+    print(max_obb)
